@@ -1,54 +1,45 @@
-import { LitElement, html } from "lit";
+import { html, LitElement } from "lit";
 
 export class AppHeader extends LitElement {
   createRenderRoot() { return this; }
 
   static get properties() {
     return {
-      _mode: {
-        state: true,
-        type: String,
-        hasChanged(newValue, oldValue) {
-	        localStorage.setItem("ditella-sl-theme", newValue);
-
-          const htmlTag = document.querySelector("html");
-          if (newValue === "dark") { htmlTag.classList.add("sl-theme-dark"); }
-          else { htmlTag.classList.remove("sl-theme-dark"); }
-
-          return newValue !== oldValue;
-        }
-      }
+      _mode: { state: true, type: String }
     };
   }
 
-  constructor() {
-    super();
+  connectedCallback() {
+    super.connectedCallback();
 
-  	const userPreferredTheme = localStorage.getItem("ditella-sl-theme");
-    if (userPreferredTheme) {
-	    this._mode = userPreferredTheme;
-    } else {
+    const userPreferredTheme = localStorage.getItem("ditella-sl-theme");
+    if (!userPreferredTheme) {
       const darkModePreference = "(prefers-color-scheme: dark)";
       this._mode = window.matchMedia(darkModePreference).matches ? "dark" : "light";
-    }
+    } else { this._mode = userPreferredTheme; }
+  }
+
+  _setPreferredTheme() {
+    localStorage.setItem("ditella-sl-theme", this._mode);
+
+    const htmlTag = document.querySelector("html");
+    if (this._mode === "dark") { htmlTag.classList.add("sl-theme-dark"); }
+    else { htmlTag.classList.remove("sl-theme-dark"); }
   }
 
   firstUpdated() {
+    this._setPreferredTheme();
     document.querySelector("sl-switch").checked = this._mode === "dark";
+  }
+
+  updated(_changedProperties) {
+    if (_changedProperties.get('_mode')) {
+      this._setPreferredTheme();
+    }
   }
 
   _handleSwitcherChange(ev) {
     this._mode = ev.target.checked ? "dark" : "light";
-  }
-
-  /**
-   * No estoy seguro de si deberíamos incluir el `disconnectedCallback`,
-   * dado que no sé si al declarar el evento @sl-change en el render,
-   * automáticamente Lit lo remueve al desmontarse el componente 🤷
-   */
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.querySelector("sl-switch").removeEventListener("sl-change", this._handleSwitcherChange);
   }
 
   render() {
